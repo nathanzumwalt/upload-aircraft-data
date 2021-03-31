@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Nathan's Testing Map</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<link rel="stylesheet" href="https://openlayers.org/en/v4.6.5/css/ol.css" type="text/css">
+	<script src="https://openlayers.org/en/v4.6.5/build/ol.js" type="text/javascript"></script>
+  
+	<script>
+	/* OSM & OL example code provided by https://mediarealm.com.au/ */
+	var map;
+	// Sammamish -122.0336946556543, 47.63446361757818
+	var mapLat = 47.63446361757818; //-33.829357;
+	var mapLng = -122.0336946556543; //150.961761;
+	var mapDefaultZoom = 8;
+
+	var markers = [];
+
+	function initialize_map() {
+		map = new ol.Map({
+			target: "map",
+			layers: [
+				new ol.layer.Tile({
+					source: new ol.source.OSM({
+						url: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+				})
+			})
+			],
+			view: new ol.View({
+				center: ol.proj.fromLonLat([mapLng, mapLat]),
+				zoom: mapDefaultZoom
+			})
+		});
+	}
+
+    function add_map_point(lat, lng, heading, flight, station) {
+		//radianDegrees = Math.PI / 2 + Math.PI; //pointing up, heading 0
+		//radianDegrees = Math.PI / 2; //pointing down, heading 180
+		//radianDegrees = Math.PI; //pointing left, heading 270
+
+		radianDegrees = 0; //pointing right, heading 90
+		
+		//Math.PI radians == 180 degrees of heading
+		if (heading)
+			radianDegrees = (heading - 90) / (180 / Math.PI) ;
+
+		var vectorLayer = new ol.layer.Vector({
+			source:new ol.source.Vector({
+				features: [new ol.Feature({
+					geometry: new ol.geom.Point(ol.proj.transform([parseFloat(lng), parseFloat(lat)], 'EPSG:4326', 'EPSG:3857')),
+				})]
+			}),
+			style: new ol.style.Style({
+				image: new ol.style.Icon({
+					anchor: [0.5, 0.5],
+					anchorXUnits: "fraction",
+					anchorYUnits: "fraction",
+					//src: "https://upload.wikimedia.org/wikipedia/commons/e/ec/RedDot.svg"
+					//size: 50,
+					scale: 0.2,
+					rotation: radianDegrees,
+					src: "https://upload.wikimedia.org/wikipedia/commons/f/f5/Airplane-logo.png"
+				}),
+				text: new ol.style.Text({
+					text: flight + " (" + station + ")",
+					scale: 1,
+					offsetY: -15,
+					fill: new ol.style.Fill({
+						color: "#fff"
+					}),
+					stroke: new ol.style.Stroke({
+						color: "0",
+						width: 3
+					})
+				})
+			})
+		});
+
+		map.addLayer(vectorLayer); 
+		markers.push(vectorLayer);
+    }
+
+
+	function add_markers() {
+
+		//console.log("start add_markers");
+		//Aircaft json file
+		let url = 'https://1ouk517djg.execute-api.us-west-2.amazonaws.com/getRecentADSB'; //'/data/aircraft.json';
+
+		fetch(url)
+			.then(res => res.json())
+			.then((out) => {
+
+				clear_markers();
+				//console.log('Checkout this JSON! ', out);
+				//console.log(out["aircraft"][0]["lat"]);
+                for(var x in out) {
+					//console.log(out[x]["flight"]);
+                    //console.log(out[x]["lat"]);
+                    //console.log(out[x]["lon"]);
+                    //console.log(out[x]["nav_heading"]);
+                    try {
+						add_map_point(out[x]["lat"],out[x]["lon"],out[x]["nav_heading"],out[x]["flight"],out[x]["station"]);
+                    } catch (e) {}
+                    //console.log("-------------");
+                }
+			})
+			.catch(err => { throw err });
+		
+	}
+
+		function clear_markers() {
+
+			try { 
+				for(x = 0; x < markers.length; x++) {
+					markers[x].getSource().clear();
+				}
+				markers = [];
+           
+			} catch (e) {}
+				//console.log("done clear_markers()");
+		}
+
+
+	</script>
+</head>
+<body onload="initialize_map(); add_markers(); setInterval(add_markers, 5000)">
+	<div id="map" style="width: 100vw; height: 100vh;"></div>
+</body>
+</html>
