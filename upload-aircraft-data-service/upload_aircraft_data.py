@@ -15,7 +15,7 @@ config_filename = "./upload_aircraft_data.ini"
 config = configparser.ConfigParser()
 config.read(config_filename)
 
-print(config['general']['station_name'])
+logging.info(config['general']['station_name'])
 
 # Local raspberry pi config #############################################
 station_name = config['general']['station_name'] 
