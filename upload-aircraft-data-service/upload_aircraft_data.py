@@ -10,7 +10,7 @@ import signal
 import sys
 import configparser
 
-config_filename = "/home/pi/upload_aircraft_data.ini"
+config_filename = "./upload_aircraft_data.ini"
 
 config = configparser.ConfigParser()
 config.read(config_filename)
