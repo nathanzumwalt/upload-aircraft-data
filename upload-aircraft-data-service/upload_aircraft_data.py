@@ -15,8 +15,6 @@ config_filename = "./upload_aircraft_data.ini"
 config = configparser.ConfigParser()
 config.read(config_filename)
 
-print(config['general']['station_name'])
-
 # Local raspberry pi config #############################################
 station_name = config['general']['station_name'] 
 ACCESS_KEY = config['general']['aws_access_key']  
@@ -28,11 +26,14 @@ aircraft_upload_interval = int(config['general']['aircraft_upload_interval_secon
 
 # Remote config #########################################################
 update_station_config_interval = int(config['general']['update_station_config_interval_minutes']) * 60 # 1 * 60 
-s3_bucket_name = config['general']['s3_bucket_name'] 
+s3_bucket_adsb_data = config['general']['s3_bucket_adsb_data'] 
+s3_bucket_station_config = config['general']['s3_bucket_station_config'] 
 
 station_config = []
 config_run_event = threading.Event()
 logging.basicConfig(level=logging.INFO,filename=log_filename, filemode='a', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+logging.info("station:" + config['general']['station_name'])
 
 def get_s3_client():
 	s3_client = boto3.client(
@@ -60,16 +61,16 @@ def update_station_config():
 
 
 #########################################################################
-# Get the station config from the S3 bucket and save it locally
+# Get the station config from the S3 bucket 
 def get_station_config():
 
 	try:
-		s3 = get_s3_client() #boto3.resource('s3')
+		s3 = get_s3_client() 
 
-		key = 'station-config/' + station_name + '.json'
+		key = station_name + '.json'
 		#logging.info('key=' + key)
 
-		content_object = s3.get_object(Bucket=s3_bucket_name, Key=key)
+		content_object = s3.get_object(Bucket=s3_bucket_station_config, Key=key)
 		file_content = content_object['Body'].read().decode('utf-8')
 		logging.info(file_content)
 		global station_config
@@ -136,9 +137,10 @@ def remove_aircraft_last_seen(input_aircraft_filename, output_aircraft_filename,
 #########################################################################
 # Handle stop signal from systemd
 def handler_stop_signals(signum, frame):
-    writeString("in stop_signals: " + str(signum) + " " + str(frame))
-    global run
-    run = False
+	logging.info("in stop_signals: " + str(signum) + " " + str(frame))
+	global run
+	run = False
+	logging.info("waiting for threads to complete")
 
 #########################################################################
 # Main section of the script (TODO: Move this to a main function)
@@ -148,7 +150,7 @@ run = True
 signal.signal(signal.SIGINT, handler_stop_signals)
 signal.signal(signal.SIGTERM, handler_stop_signals)
 
-logging.info('PID=' + str(os.getpid()))
+logging.info('PID:' + str(os.getpid()))
 #Get initial station config, will update from thread after this
 get_station_config()
 
@@ -171,7 +173,7 @@ try:
 	
 			if remove_aircraft_last_seen(full_aircraft_path, temp_filepath, aircraft_upload_interval):
 				logging.info('uploading file: ' + temp_filepath)
-				upload_file(temp_filepath, s3_bucket_name, upload_filename) 
+				upload_file(temp_filepath, s3_bucket_adsb_data, upload_filename) 
 				os.remove(temp_filepath)
 				logging.info('done uploading')
 			else:
@@ -182,7 +184,7 @@ try:
 except Exception as e:
 	logging.error(e, exc_info=True)
 	logging.info(sys.exc_info())
-	logging.info("waiting for threads to complete")
-	config_run_event.clear()
-	config_thread.join()	
-	logging.info("threads complete")
+
+config_run_event.clear()
+config_thread.join()	
+logging.info("threads complete")
