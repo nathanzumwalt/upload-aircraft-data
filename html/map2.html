@@ -86,16 +86,21 @@
 
 		//console.log("start add_markers");
 		//Aircaft json file
-		let url = 'https://1ouk517djg.execute-api.us-west-2.amazonaws.com/getRecentADSB'; //'/data/aircraft.json';
+		//HTTP
+		//let url = 'https://1ouk517djg.execute-api.us-west-2.amazonaws.com/getRecentADSB';
+		
+		//REST
+		let url = 'https://7fkbieuujl.execute-api.us-west-2.amazonaws.com/prod'; 
 
 		fetch(url)
 			.then(res => res.json())
 			.then((out) => {
 
 				clear_markers();
-				//console.log('Checkout this JSON! ', out);
+				console.log('Checkout this JSON! ', out);
 				//console.log(out["aircraft"][0]["lat"]);
                 for(var x in out) {
+					//console.log(out[x]);
 					//console.log(out[x]["flight"]);
                     //console.log(out[x]["lat"]);
                     //console.log(out[x]["lon"]);
@@ -125,7 +130,7 @@
 
 	</script>
 </head>
-<body onload="initialize_map(); add_markers(); setInterval(add_markers, 5000)">
+<body onload="initialize_map(); add_markers(); setInterval(add_markers, 50000)">
 	<div id="map" style="width: 100vw; height: 100vh;"></div>
 </body>
 </html>
