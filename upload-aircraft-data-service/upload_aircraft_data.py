@@ -31,7 +31,7 @@ s3_bucket_station_config = config['general']['s3_bucket_station_config']
 
 station_config = []
 config_run_event = threading.Event()
-logging.basicConfig(level=logging.INFO,filename=log_filename, filemode='a', format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,filename=log_filename, filemode='a', format='%(asctime)s - %(levelname)s - ' + station_name + ' - %(message)s')
 
 logging.info("station:" + config['general']['station_name'])
 
@@ -57,8 +57,15 @@ def update_station_config():
 		else:
 			logging.info("in update_station_config")
 			get_station_config();
-			seconds_between_update = update_station_config_interval 
+			seconds_between_update = update_station_config_interval
+			log_station_stats()
 
+#########################################################################
+# Log station stats (temp, etc.)
+def log_station_stats():
+	f = os.popen('/opt/vc/bin/vcgencmd measure_temp')
+	temp = f.read()
+	logging.info(temp)
 
 #########################################################################
 # Get the station config from the S3 bucket 
